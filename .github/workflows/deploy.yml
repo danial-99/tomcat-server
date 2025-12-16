@@ -1,0 +1,34 @@
+name: Deploy to EC2 Tomcat
+
+# Trigger on push to main branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Step 2: Setup SSH
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    # Step 3: Deploy files to EC2 Tomcat
+    - name: Copy files to EC2 Tomcat
+      run: |
+        scp -r * ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/tomcat/webapps/ROOT/
+        
+    # Optional Step: Restart Tomcat (if needed)
+    - name: Restart Tomcat
+      run: |
+        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "sudo systemctl restart tomcat"
